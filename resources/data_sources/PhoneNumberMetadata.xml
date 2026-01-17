@@ -3279,7 +3279,7 @@
              granularity. -->
         <numberFormat pattern="(\d{4})(\d{3,6})" nationalPrefixFormattingRule="$NP$FG">
           <leadingDigits>
-            [13-9]|
+            [3-9]|
             2[23]
           </leadingDigits>
           <format>$1-$2</format>
