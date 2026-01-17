@@ -13,3 +13,6 @@ export 'src/iso_codes/iso_code.dart';
 export 'src/range/phone_number_range.dart';
 export 'src/parsers/phone_parser.dart';
 export 'src/formatting/phone_number_formatter.dart';
+// Add this line to the exports
+export 'src/metadata/metadata_utils.dart';
+
