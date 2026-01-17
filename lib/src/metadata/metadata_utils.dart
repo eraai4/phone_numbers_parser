@@ -12,7 +12,7 @@ class PhoneNumberMetadataUtils {
   final PhoneMetadataPatterns _patternMetadata;
 
   /// Create metadata utils from 2-letter country code ('US', 'CA', 'BD', etc.)
-  /// 
+  ///
   /// Example:
   /// ```dart
   /// final utils = PhoneNumberMetadataUtils('CA');
@@ -43,8 +43,86 @@ class PhoneNumberMetadataUtils {
   }
 
   /// Validate if a national number matches valid patterns
+  ///
+  /// For partial input (shorter than minimum length), this validates
+  /// whether the input could be a valid prefix of a complete number.
+  /// For complete input, this validates the full pattern.
   bool validatePattern(String national, [PhoneNumberType? type]) {
+    final minLength = getMinLength(type);
+
+    // For partial input, check if it's a valid prefix
+    if (minLength != null && national.length < minLength) {
+      return _validatePrefix(national, type);
+    }
+
+    // For full-length input, use standard pattern validation
     return Validator.validateWithPattern(isoCode, national, type);
+  }
+
+  /// Validate if partial input could lead to a valid number
+  bool _validatePrefix(String partial, PhoneNumberType? type) {
+    final patterns = <String>[];
+
+    if (type != null) {
+      final pattern = _getPattern(_patternMetadata, type);
+      if (pattern.isNotEmpty) {
+        patterns.add(pattern);
+      }
+    } else {
+      // Check both mobile and fixed line patterns
+      final mobilePattern =
+          _getPattern(_patternMetadata, PhoneNumberType.mobile);
+      final fixedLinePattern =
+          _getPattern(_patternMetadata, PhoneNumberType.fixedLine);
+      if (mobilePattern.isNotEmpty) patterns.add(mobilePattern);
+      if (fixedLinePattern.isNotEmpty) patterns.add(fixedLinePattern);
+    }
+
+    // Check if the partial input could be the start of any valid pattern
+    return patterns.any((patternStr) {
+      final maxLen = getMaxLength(type) ?? 15;
+      // Create regex with anchors to match entire string
+      final pattern = RegExp('^$patternStr\$');
+
+      // Test if padding with any single digit could lead to a valid number
+      for (int digit = 0; digit <= 9; digit++) {
+        final testNumber = partial + ('$digit' * (maxLen - partial.length));
+        if (pattern.hasMatch(testNumber)) {
+          return true;
+        }
+      }
+      return false;
+    });
+  }
+
+  static String _getPattern(
+    PhoneMetadataPatterns patternMetadata,
+    PhoneNumberType type,
+  ) {
+    switch (type) {
+      case PhoneNumberType.mobile:
+        return patternMetadata.mobile;
+      case PhoneNumberType.fixedLine:
+        return patternMetadata.fixedLine;
+      case PhoneNumberType.voip:
+        return patternMetadata.voip;
+      case PhoneNumberType.tollFree:
+        return patternMetadata.tollFree;
+      case PhoneNumberType.premiumRate:
+        return patternMetadata.premiumRate;
+      case PhoneNumberType.sharedCost:
+        return patternMetadata.sharedCost;
+      case PhoneNumberType.personalNumber:
+        return patternMetadata.personalNumber;
+      case PhoneNumberType.uan:
+        return patternMetadata.uan;
+      case PhoneNumberType.pager:
+        return patternMetadata.pager;
+      case PhoneNumberType.voiceMail:
+        return patternMetadata.voiceMail;
+      default:
+        return patternMetadata.general;
+    }
   }
 
   /// Validate if a national number has valid length
